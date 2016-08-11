@@ -1,0 +1,26 @@
+<launch>
+
+  <!-- launch the overlay simulation -->
+  <include file="$(find simulated-env-mirroring)/launch/gazebo_camera.launch" />
+
+  <!-- republish the compressed, theora encoded rgb stream from the turtlebot to a raw stream -->
+  <!-- makes handling the video stream in python easier, it has no support for image_transport -->
+  <node pkg="image_transport" type="republish" name="bot_image_repub" output="screen" 
+    args="theora in:=/camera/rgb/image_color raw out:=bot_image_repub"/>
+
+  <!-- Image stream handler, republishes correct stream to /image_repub topic based on the -->
+  <!-- state of the /enable_overlay topic flag -->
+  <node pkg="simulated-env-mirroring" type="camera_view.py" output="screen" />
+
+  <!-- Uncomment below if desired, but keyboard teleop seems to be more responsive if run in its own terminal-->
+
+  <!-- Launch custom keyboard teleop script -->
+  <!-- <include file="$(find simulated-env-mirroring)/launch/keyboard_teleop.launch" /> -->
+
+  <!-- Launch Viewer for republished image stream -->
+   <node pkg="image_view" type="image_view" name="image_stream_view" output="screen" args="image:=/image_repub"/>
+
+  <!-- Launch node for syncronization of odom positions between bot and simulation -->
+  <node pkg="simulated-env-mirroring" type="bot_state_handler" output="screen" />
+
+</launch>

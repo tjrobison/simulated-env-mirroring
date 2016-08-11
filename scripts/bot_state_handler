@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+import rospy
+from nav_msgs.msg import Odometry 
+from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import SetModelState
+
+class SimPoseSync:
+
+    """
+    Initialize the SimPoseSyncNode. It acquires the robot's position from the /odom topic
+    and uses that telemetry data to position the simulated camera
+    """ 
+    def __init__(self):
+        self.bot_pose_sub = rospy.Subscriber("/odom", Odometry, self.bot_pose_callback)
+        # self.capture_robot_state_flag = rospy.Subscriber("/flags/capture_robot_state_flag")
+        #self.sim_pose_sub = rospy.Subscriber("/sim_odom", Odometry, sim_pose_callback)
+
+        # self.overlay_flag_pub = rospy.Publisher("/flags/enable_overlay", 10)
+
+        self.sim_pose = ModelState()
+        self.init_x = 0
+        self.init_y = 0
+        self.init_z = 0.3
+
+        rospy.wait_for_service('/gazebo/set_model_state')
+        try:
+            self.set_sim_pose = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" % e
+
+
+    """
+    Even though the only relevant values are x, y and ow, a complete odometry message
+    is needed to position the simulated camera accurately. This function composes
+    that odometry message.
+    """
+    def create_model_state_msg(self, x, y, ox, oy, oz, ow):
+        model_state = ModelState()
+        model_state.model_name = 'camera'
+        model_state.pose.position.x = x
+        model_state.pose.position.y = y
+        model_state.pose.position.z = self.init_z
+        model_state.pose.orientation.x = ox 
+        model_state.pose.orientation.y = oy 
+        model_state.pose.orientation.z = oz 
+        model_state.pose.orientation.w = ow
+        return model_state
+
+    """
+    Composes the odometry message and handles the Gazebo service call.
+    """
+    def set_bot_pose(self, x, y, ox, oy, oz, ow):
+        pose = self.create_model_state_msg(x, y, ox, oy, oz, ow)
+        self.set_sim_pose(pose)
+
+    """
+    Handles the incoming robot odometry data and passes it to the sim handler
+    """
+    def bot_pose_callback(self, msg):
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        ox = msg.pose.pose.orientation.x
+        oy = msg.pose.pose.orientation.y
+        oz = msg.pose.pose.orientation.z
+        ow = msg.pose.pose.orientation.w
+        self.set_bot_pose(x, y, ox, oy, oz, ow)
+
+if __name__ == "__main__":
+    rospy.init_node("sim_pose_sync")
+    sim_pose_sync = SimPoseSync()
+    rospy.spin()

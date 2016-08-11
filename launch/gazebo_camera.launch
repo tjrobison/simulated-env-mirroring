@@ -1,0 +1,19 @@
+<launch>
+
+	<!-- Load urdf model of camera into paramater server -->
+	<param name="robot_description" textfile="/home/tj/catkin_ws/src/simulated_mirroring/urdf/camera.urdf" />	
+
+	<!-- Start gazebo with an empty world -->
+	<include file="$(find simulated_mirroring)/launch/include/empty_world.launch">
+	    <arg name="use_sim_time" value="true"/>
+	    <arg name="debug" value="false"/>
+	    <arg name="gui" value="true" />
+  <arg name="verbose" default="true"/>
+	    <arg name="world_name" value="$(find simulated_mirroring)/worlds/law_hall.world"/>	
+	</include>
+
+	<!-- Spawn simulated camera in doorway at far end of the room	 -->
+	<node name="spawn_bot_1" pkg="gazebo_ros" type="spawn_model"
+		args="-param robot_description -urdf -x 0 -y 0 -z 0.3 -Y 0 -robot_namespace simbot1 -model camera" />
+		
+</launch>
